@@ -544,7 +544,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 		}
 		session.addConnection(backMicrophoneAudioDataOutputConnection)
 		
-		// Connect the front microphone to the back audio data output
+		// Connect the front microphone to the front audio data output
 		let frontMicrophoneAudioDataOutputConnection = AVCaptureConnection(inputPorts: [frontMicrophonePort], output: frontMicrophoneAudioDataOutput)
 		guard session.canAddConnection(frontMicrophoneAudioDataOutputConnection) else {
 			print("Could not add a connection to the front microphone audio data output")
