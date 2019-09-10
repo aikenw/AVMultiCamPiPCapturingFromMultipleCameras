@@ -673,6 +673,10 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 	// MARK: Recording Movies
 	
 	private var movieRecorder: MovieRecorder?
+    
+    private var movieRecorder2: MovieRecorder?
+    
+    private var willSavedMovieURLs: [URL] = []
 	
 	private var currentPiPSampleBuffer: CMSampleBuffer?
 	
@@ -733,12 +737,20 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 				self.movieRecorder = MovieRecorder(audioSettings: audioSettings,
 												   videoSettings: videoSettings,
 												   videoTransform: videoTransform)
+                
+                self.movieRecorder2 = MovieRecorder(audioSettings: audioSettings,
+                                                    videoSettings: videoSettings,
+                                                    videoTransform: videoTransform)
 				
 				self.movieRecorder?.startRecording()
+                self.movieRecorder2?.startRecording()
 			} else {
 				self.movieRecorder?.stopRecording { movieURL in
 					self.saveMovieToPhotoLibrary(movieURL)
 				}
+                self.movieRecorder2?.stopRecording { movieURL in
+                    self.saveMovieToPhotoLibrary(movieURL)
+                }
 			}
 		}
 	}
@@ -797,7 +809,17 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 
 	}
 	
+    private let lock = NSLock()
 	private func saveMovieToPhotoLibrary(_ movieURL: URL) {
+        lock.lock()
+        print("--->Will saved movieURL: \(movieURL)")
+        willSavedMovieURLs.append(movieURL)
+        guard willSavedMovieURLs.count == 2 else {
+            lock.unlock()
+            return
+        }
+        lock.unlock()
+        
 		PHPhotoLibrary.requestAuthorization { status in
 			if status == .authorized {
 				// Save the movie file to the photo library and clean up.
@@ -805,19 +827,29 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 					let options = PHAssetResourceCreationOptions()
 					options.shouldMoveFile = true
 					let creationRequest = PHAssetCreationRequest.forAsset()
-					creationRequest.addResource(with: .video, fileURL: movieURL, options: options)
+                    creationRequest.addResource(with: .video, fileURL: self.willSavedMovieURLs[0], options: options)
+                    
+                    let creationRequest2 = PHAssetCreationRequest.forAsset()
+                    creationRequest2.addResource(with: .video, fileURL: self.willSavedMovieURLs[1], options: options)
 				}, completionHandler: { success, error in
 					if !success {
 						print("\(Bundle.main.applicationName) couldn't save the movie to your photo library: \(String(describing: error))")
 					} else {
 						// Clean up
-						if FileManager.default.fileExists(atPath: movieURL.path) {
+						if FileManager.default.fileExists(atPath: self.willSavedMovieURLs[0].path) {
 							do {
-								try FileManager.default.removeItem(atPath: movieURL.path)
+								try FileManager.default.removeItem(atPath: self.willSavedMovieURLs[0].path)
 							} catch {
 								print("Could not remove file at url: \(movieURL)")
 							}
 						}
+                        if FileManager.default.fileExists(atPath: self.willSavedMovieURLs[1].path) {
+                            do {
+                                try FileManager.default.removeItem(atPath: self.willSavedMovieURLs[1].path)
+                            } catch {
+                                print("Could not remove file at url: \(movieURL)")
+                            }
+                        }
 						
 						if let currentBackgroundRecordingID = self.backgroundRecordingID {
 							self.backgroundRecordingID = UIBackgroundTaskIdentifier.invalid
@@ -827,6 +859,7 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 							}
 						}
 					}
+                    self.willSavedMovieURLs.removeAll()
 				})
 			} else {
 				DispatchQueue.main.async {
@@ -897,6 +930,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 		}
 		
 		videoMixer.pipFrame = normalizedPipFrame
+        
+//        print("--->pipFrame: \(normalizedPipFrame)")
 		
 		// Mix the full screen pixel buffer with the pip pixel buffer
 		// When the PIP is the back camera, the primaryPixelBuffer is the front camera
@@ -916,8 +951,13 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 																							return
 			}
 			
-			recorder.recordVideo(sampleBuffer: finalVideoSampleBuffer)
+			recorder.recordVideo(sampleBuffer: fullScreenSampleBuffer)
 		}
+        
+        if let recorder = movieRecorder2,
+            recorder.isRecording {
+            recorder.recordVideo(sampleBuffer: pipSampleBuffer)
+        }
 	}
 	
 	private func processPiPSampleBuffer(_ pipSampleBuffer: CMSampleBuffer) {
@@ -941,6 +981,11 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 			recorder.isRecording {
 			recorder.recordAudio(sampleBuffer: sampleBuffer)
 		}
+        
+        if let recorder = movieRecorder2,
+            recorder.isRecording {
+            recorder.recordAudio(sampleBuffer: sampleBuffer)
+        }
 	}
 	
 	private func createVideoSampleBufferWithPixelBuffer(_ pixelBuffer: CVPixelBuffer, presentationTime: CMTime) -> CMSampleBuffer? {
@@ -985,86 +1030,91 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 		if session.hardwareCost > 1.0 {
 			exceededSessionCosts.insert(.hardwareCost)
 		}
+        
+//        reduceResolutionForCamera(.front)
+//
+//        reduceResolutionForCamera(.back)
+        
 		
-		switch exceededSessionCosts {
-			
-		case .systemPressureCost:
-			// Choice #1: Reduce front camera resolution
-			if reduceResolutionForCamera(.front) {
-				checkSystemCost()
-			}
-				
-			// Choice 2: Reduce the number of video input ports
-			else if reduceVideoInputPorts() {
-				checkSystemCost()
-			}
-				
-			// Choice #3: Reduce back camera resolution
-			else if reduceResolutionForCamera(.back) {
-				checkSystemCost()
-			}
-				
-			// Choice #4: Reduce front camera frame rate
-			else if reduceFrameRateForCamera(.front) {
-				checkSystemCost()
-			}
-				
-			// Choice #5: Reduce frame rate of back camera
-			else if reduceFrameRateForCamera(.back) {
-				checkSystemCost()
-			} else {
-				print("Unable to further reduce session cost.")
-			}
-			
-		case .hardwareCost:
-			// Choice #1: Reduce front camera resolution
-			if reduceResolutionForCamera(.front) {
-				checkSystemCost()
-			}
-				
-			// Choice 2: Reduce back camera resolution
-			else if reduceResolutionForCamera(.back) {
-				checkSystemCost()
-			}
-				
-			// Choice #3: Reduce front camera frame rate
-			else if reduceFrameRateForCamera(.front) {
-				checkSystemCost()
-			}
-				
-			// Choice #4: Reduce back camera frame rate
-			else if reduceFrameRateForCamera(.back) {
-				checkSystemCost()
-			} else {
-				print("Unable to further reduce session cost.")
-			}
-			
-		case [.systemPressureCost, .hardwareCost]:
-			// Choice #1: Reduce front camera resolution
-			if reduceResolutionForCamera(.front) {
-				checkSystemCost()
-			}
-				
-			// Choice #2: Reduce back camera resolution
-			else if reduceResolutionForCamera(.back) {
-				checkSystemCost()
-			}
-				
-			// Choice #3: Reduce front camera frame rate
-			else if reduceFrameRateForCamera(.front) {
-				checkSystemCost()
-			}
-				
-			// Choice #4: Reduce back camera frame rate
-			else if reduceFrameRateForCamera(.back) {
-				checkSystemCost()
-			} else {
-				print("Unable to further reduce session cost.")
-			}
-			
-		default:
-			break
-		}
+//		switch exceededSessionCosts {
+//
+//		case .systemPressureCost:
+//			// Choice #1: Reduce front camera resolution
+//			if reduceResolutionForCamera(.front) {
+//				checkSystemCost()
+//			}
+//
+//			// Choice 2: Reduce the number of video input ports
+//			else if reduceVideoInputPorts() {
+//				checkSystemCost()
+//			}
+//
+//			// Choice #3: Reduce back camera resolution
+//			else if reduceResolutionForCamera(.back) {
+//				checkSystemCost()
+//			}
+//
+//			// Choice #4: Reduce front camera frame rate
+//			else if reduceFrameRateForCamera(.front) {
+//				checkSystemCost()
+//			}
+//
+//			// Choice #5: Reduce frame rate of back camera
+//			else if reduceFrameRateForCamera(.back) {
+//				checkSystemCost()
+//			} else {
+//				print("Unable to further reduce session cost.")
+//			}
+//
+//		case .hardwareCost:
+//			// Choice #1: Reduce front camera resolution
+//			if reduceResolutionForCamera(.front) {
+//				checkSystemCost()
+//			}
+//
+//			// Choice 2: Reduce back camera resolution
+//			else if reduceResolutionForCamera(.back) {
+//				checkSystemCost()
+//			}
+//
+//			// Choice #3: Reduce front camera frame rate
+//			else if reduceFrameRateForCamera(.front) {
+//				checkSystemCost()
+//			}
+//
+//			// Choice #4: Reduce back camera frame rate
+//			else if reduceFrameRateForCamera(.back) {
+//				checkSystemCost()
+//			} else {
+//				print("Unable to further reduce session cost.")
+//			}
+//
+//		case [.systemPressureCost, .hardwareCost]:
+//			// Choice #1: Reduce front camera resolution
+//			if reduceResolutionForCamera(.front) {
+//				checkSystemCost()
+//			}
+//
+//			// Choice #2: Reduce back camera resolution
+//			else if reduceResolutionForCamera(.back) {
+//				checkSystemCost()
+//			}
+//
+//			// Choice #3: Reduce front camera frame rate
+//			else if reduceFrameRateForCamera(.front) {
+//				checkSystemCost()
+//			}
+//
+//			// Choice #4: Reduce back camera frame rate
+//			else if reduceFrameRateForCamera(.back) {
+//				checkSystemCost()
+//			} else {
+//				print("Unable to further reduce session cost.")
+//			}
+//
+//		default:
+//			break
+//		}
 	}
 	
 	func reduceResolutionForCamera(_ position: AVCaptureDevice.Position) -> Bool {
@@ -1085,43 +1135,48 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 					dims = CMVideoFormatDescriptionGetDimensions(videoDeviceInput.device.activeFormat.formatDescription)
 					activeWidth = dims.width
 					activeHeight = dims.height
+                    
+                    print("--->active width: \(activeWidth), height: \(activeHeight)")
 					
-					if ( activeHeight <= 480 ) && ( activeWidth <= 640 ) {
-						return false
-					}
+//					if ( activeHeight <= 480 ) && ( activeWidth <= 640 ) {
+//						return false
+//					}
 					
 					let formats = videoDeviceInput.device.formats
 					if let formatIndex = formats.firstIndex(of: videoDeviceInput.device.activeFormat) {
-						
+
 						for index in (0..<formatIndex).reversed() {
 							let format = videoDeviceInput.device.formats[index]
 							if format.isMultiCamSupported {
 								dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
 								width = dims.width
 								height = dims.height
-								
-								if width < activeWidth || height < activeHeight {
-									do {
-										try videoDeviceInput.device.lockForConfiguration()
-										videoDeviceInput.device.activeFormat = format
-										
-										videoDeviceInput.device.unlockForConfiguration()
-										
-										print("reduced width = \(width), reduced height = \(height)")
-										
-										return true
-									} catch {
-										print("Could not lock device for configuration: \(error)")
-										
-										return false
-									}
-									
-								} else {
-									continue
-								}
+                                print("--->width: \(width), height: \(height)")
+
+//								if width < activeWidth || height < activeHeight {
+//									do {
+//										try videoDeviceInput.device.lockForConfiguration()
+//										videoDeviceInput.device.activeFormat = format
+//
+//										videoDeviceInput.device.unlockForConfiguration()
+//
+//										print("reduced width = \(width), reduced height = \(height)")
+//
+//										return true
+//									} catch {
+//										print("Could not lock device for configuration: \(error)")
+//
+//										return false
+//									}
+//
+//								} else {
+//									continue
+//								}
 							}
 						}
 					}
+                    
+                    
 				}
 			}
 		}
