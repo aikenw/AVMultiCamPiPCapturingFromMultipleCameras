@@ -314,6 +314,18 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 			setupResult = .multiCamNotSupported
 			return
 		}
+        
+        // Find the supported multicam device combinations
+        let deviceTypes = [
+            AVCaptureDevice.DeviceType.builtInDualCamera,
+            AVCaptureDevice.DeviceType.builtInWideAngleCamera,
+            AVCaptureDevice.DeviceType.builtInTelephotoCamera,
+            AVCaptureDevice.DeviceType.builtInUltraWideCamera,
+            AVCaptureDevice.DeviceType.builtInTripleCamera,
+        ]
+        let discoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: deviceTypes, mediaType: .video, position: .unspecified)
+        let multicamSupportedDeviceSets = discoverySession.supportedMultiCamDeviceSets
+        print("--->multicamSupportedDeviceSets: \(multicamSupportedDeviceSets)")
 		
 		// When using AVCaptureMultiCamSession, it is best to manually add connections from AVCaptureInputs to AVCaptureOutputs
 		session.beginConfiguration()
