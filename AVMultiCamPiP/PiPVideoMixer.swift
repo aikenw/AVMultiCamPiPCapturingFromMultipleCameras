@@ -110,7 +110,8 @@ class PiPVideoMixer {
 				return nil
 		}
 
-        let pipPosition = SIMD2(Float(pipFrame.origin.x) * Float(fullScreenTexture.width), Float(0.5) * Float(fullScreenTexture.height))
+        let pipPosition = SIMD2(Float(pipFrame.origin.x) * Float(fullScreenTexture.width), Float(pipFrame.origin.y) * Float(fullScreenTexture.height)) //画中画
+//        let pipPosition = SIMD2(Float(pipFrame.origin.x) * Float(fullScreenTexture.width), Float(0.5) * Float(fullScreenTexture.height)) // 分屏
 		let pipSize = SIMD2(Float(pipFrame.size.width) * Float(pipTexture.width), Float(pipFrame.size.height) * Float(pipTexture.height))
 		var parameters = MixerParameters(pipPosition: pipPosition, pipSize: pipSize)
 		

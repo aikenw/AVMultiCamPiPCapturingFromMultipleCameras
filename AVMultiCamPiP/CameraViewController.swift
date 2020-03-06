@@ -281,6 +281,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 	
 	@objc dynamic private(set) var backCameraDeviceInput: AVCaptureDeviceInput?
 	
+    private let backCameraPhotoOutput = AVCapturePhotoOutput()
+    
 	private let backCameraVideoDataOutput = AVCaptureVideoDataOutput()
 	
 	@IBOutlet private var backCameraVideoPreviewView: PreviewView!
@@ -289,6 +291,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 	
 	private var frontCameraDeviceInput: AVCaptureDeviceInput?
 	
+    private var frontCameraPhotoOutput = AVCapturePhotoOutput()
+    
 	private let frontCameraVideoDataOutput = AVCaptureVideoDataOutput()
 	
 	@IBOutlet private var frontCameraVideoPreviewView: PreviewView!
@@ -373,16 +377,15 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 		}
 		
 		// Add the back camera video data output
-		guard session.canAddOutput(backCameraVideoDataOutput) else {
+		guard session.canAddOutput(backCameraPhotoOutput) else {
 			print("Could not add the back camera video data output")
 			return false
 		}
-		session.addOutputWithNoConnections(backCameraVideoDataOutput)
-		backCameraVideoDataOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
-		backCameraVideoDataOutput.setSampleBufferDelegate(self, queue: dataOutputQueue)
+		session.addOutputWithNoConnections(backCameraPhotoOutput)
+        backCameraPhotoOutput.isHighResolutionCaptureEnabled = true
 		
 		// Connect the back camera device input to the back camera video data output
-		let backCameraVideoDataOutputConnection = AVCaptureConnection(inputPorts: [backCameraVideoPort], output: backCameraVideoDataOutput)
+		let backCameraVideoDataOutputConnection = AVCaptureConnection(inputPorts: [backCameraVideoPort], output: backCameraPhotoOutput)
 		guard session.canAddConnection(backCameraVideoDataOutputConnection) else {
 			print("Could not add a connection to the back camera video data output")
 			return false
@@ -441,16 +444,15 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 		}
 		
 		// Add the front camera video data output
-		guard session.canAddOutput(frontCameraVideoDataOutput) else {
+		guard session.canAddOutput(frontCameraPhotoOutput) else {
 			print("Could not add the front camera video data output")
 			return false
 		}
-		session.addOutputWithNoConnections(frontCameraVideoDataOutput)
-		frontCameraVideoDataOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA)]
-		frontCameraVideoDataOutput.setSampleBufferDelegate(self, queue: dataOutputQueue)
+        session.addOutputWithNoConnections(frontCameraPhotoOutput)
+        frontCameraPhotoOutput.isHighResolutionCaptureEnabled = true
 		
 		// Connect the front camera device input to the front camera video data output
-		let frontCameraVideoDataOutputConnection = AVCaptureConnection(inputPorts: [frontCameraVideoPort], output: frontCameraVideoDataOutput)
+		let frontCameraVideoDataOutputConnection = AVCaptureConnection(inputPorts: [frontCameraVideoPort], output: frontCameraPhotoOutput)
 		guard session.canAddConnection(frontCameraVideoDataOutputConnection) else {
 			print("Could not add a connection to the front camera video data output")
 			return false
@@ -627,7 +629,9 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 				}
 			}
 		} else {
-			resumeButton.isHidden = false
+            DispatchQueue.main.async {
+                self.resumeButton.isHidden = false
+            }
 		}
 	}
 	
@@ -700,60 +704,146 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 	}
 	
 	@IBAction private func toggleMovieRecording(_ recordButton: UIButton) {
-		recordButton.isEnabled = false
-		
-		dataOutputQueue.async {
-			defer {
-				DispatchQueue.main.async {
-					recordButton.isEnabled = true
-					
-					if let recorder = self.movieRecorder {
-						self.updateRecordButtonWithRecordingState(recorder.isRecording)
-					}
-				}
-			}
-			
-			let isRecording = self.movieRecorder?.isRecording ?? false
-			if !isRecording {
-				if UIDevice.current.isMultitaskingSupported {
-					self.backgroundRecordingID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
-				}
 				
-				guard let audioSettings = self.createAudioSettings() else {
-					print("Could not create audio settings")
-					return
-				}
-				
-				guard let videoSettings = self.createVideoSettings() else {
-					print("Could not create video settings")
-					return
-				}
-				
-				guard let videoTransform = self.createVideoTransform() else {
-					print("Could not create video transform")
-					return
-				}
-
-				self.movieRecorder = MovieRecorder(audioSettings: audioSettings,
-												   videoSettings: videoSettings,
-												   videoTransform: videoTransform)
-                
-                self.movieRecorder2 = MovieRecorder(audioSettings: audioSettings,
-                                                    videoSettings: videoSettings,
-                                                    videoTransform: videoTransform)
-				
-				self.movieRecorder?.startRecording()
-                self.movieRecorder2?.startRecording()
-			} else {
-				self.movieRecorder?.stopRecording { movieURL in
-					self.saveMovieToPhotoLibrary(movieURL)
-				}
-                self.movieRecorder2?.stopRecording { movieURL in
-                    self.saveMovieToPhotoLibrary(movieURL)
-                }
-			}
-		}
+//		recordButton.isEnabled = false
+//
+//		dataOutputQueue.async {
+//			defer {
+//				DispatchQueue.main.async {
+//					recordButton.isEnabled = true
+//
+//					if let recorder = self.movieRecorder {
+//						self.updateRecordButtonWithRecordingState(recorder.isRecording)
+//					}
+//				}
+//			}
+//
+//			let isRecording = self.movieRecorder?.isRecording ?? false
+//			if !isRecording {
+//				if UIDevice.current.isMultitaskingSupported {
+//					self.backgroundRecordingID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
+//				}
+//
+//				guard let audioSettings = self.createAudioSettings() else {
+//					print("Could not create audio settings")
+//					return
+//				}
+//
+//				guard let videoSettings = self.createVideoSettings() else {
+//					print("Could not create video settings")
+//					return
+//				}
+//
+//				guard let videoTransform = self.createVideoTransform() else {
+//					print("Could not create video transform")
+//					return
+//				}
+//
+//				self.movieRecorder = MovieRecorder(audioSettings: audioSettings,
+//												   videoSettings: videoSettings,
+//												   videoTransform: videoTransform)
+//
+//                self.movieRecorder2 = MovieRecorder(audioSettings: audioSettings,
+//                                                    videoSettings: videoSettings,
+//                                                    videoTransform: videoTransform)
+//
+//				self.movieRecorder?.startRecording()
+//                self.movieRecorder2?.startRecording()
+//			} else {
+//				self.movieRecorder?.stopRecording { movieURL in
+//					self.saveMovieToPhotoLibrary(movieURL)
+//				}
+//                self.movieRecorder2?.stopRecording { movieURL in
+//                    self.saveMovieToPhotoLibrary(movieURL)
+//                }
+//			}
+//		}
+        
+        capturePhoto(recordButton)
 	}
+    
+    private var inProgressPhotoCaptureDelegates = [Int64: PhotoCaptureProcessor]()
+    
+    @IBAction private func capturePhoto(_ photoButton: UIButton) {
+        /*
+         Retrieve the video preview layer's video orientation on the main queue before
+         entering the session queue. Do this to ensure that UI elements are accessed on
+         the main thread and session configuration is done on the session queue.
+         */
+//        let videoPreviewLayerOrientation = previewView.videoPreviewLayer.connection?.videoOrientation
+        
+        sessionQueue.async {
+            var photoSettings = AVCapturePhotoSettings()
+
+            // Capture HEIF photos when supported. Enable auto-flash and high-resolution photos.
+            if  self.backCameraPhotoOutput.availablePhotoCodecTypes.contains(.hevc) {
+                photoSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
+            }
+
+            photoSettings.isHighResolutionPhotoEnabled = true
+            if !photoSettings.__availablePreviewPhotoPixelFormatTypes.isEmpty {
+                photoSettings.previewPhotoFormat = [kCVPixelBufferPixelFormatTypeKey as String: photoSettings.__availablePreviewPhotoPixelFormatTypes.first!]
+            }
+
+            let photoCaptureProcessor = PhotoCaptureProcessor(with: photoSettings, willCapturePhotoAnimation: {
+                // Flash the screen to signal that AVCam took a photo.
+                DispatchQueue.main.async {
+                    self.backCameraVideoPreviewView.videoPreviewLayer.opacity = 0
+                    self.frontCameraVideoPreviewView.videoPreviewLayer.opacity = 0
+                    UIView.animate(withDuration: 0.25) {
+                        self.backCameraVideoPreviewView.videoPreviewLayer.opacity = 1
+                        self.frontCameraVideoPreviewView.videoPreviewLayer.opacity = 1
+                    }
+                }
+            }, livePhotoCaptureHandler: { capturing in
+
+            }, completionHandler: { photoCaptureProcessor in
+                // When the capture is complete, remove a reference to the photo capture delegate so it can be deallocated.
+                self.sessionQueue.async {
+                    self.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = nil
+                }
+            }, photoProcessingHandler: { animate in
+
+            }
+            )
+
+            // The photo output holds a weak reference to the photo capture delegate and stores it in an array to maintain a strong reference.
+            self.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = photoCaptureProcessor
+            self.backCameraPhotoOutput.capturePhoto(with: photoSettings, delegate: photoCaptureProcessor)
+        }
+        
+        sessionQueue.async {
+            var photoSettings = AVCapturePhotoSettings()
+
+            // Capture HEIF photos when supported. Enable auto-flash and high-resolution photos.
+            if  self.frontCameraPhotoOutput.availablePhotoCodecTypes.contains(.hevc) {
+                photoSettings = AVCapturePhotoSettings(format: [AVVideoCodecKey: AVVideoCodecType.hevc])
+            }
+
+            photoSettings.isHighResolutionPhotoEnabled = true
+            if !photoSettings.__availablePreviewPhotoPixelFormatTypes.isEmpty {
+                photoSettings.previewPhotoFormat = [kCVPixelBufferPixelFormatTypeKey as String: photoSettings.__availablePreviewPhotoPixelFormatTypes.first!]
+            }
+
+            let photoCaptureProcessor = PhotoCaptureProcessor(with: photoSettings, willCapturePhotoAnimation: {
+                // Flash the screen to signal that AVCam took a photo.
+            }, livePhotoCaptureHandler: { capturing in
+
+            }, completionHandler: { photoCaptureProcessor in
+                // When the capture is complete, remove a reference to the photo capture delegate so it can be deallocated.
+                self.sessionQueue.async {
+                    self.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = nil
+                }
+            }, photoProcessingHandler: { animate in
+
+            }
+            )
+
+            // The photo output holds a weak reference to the photo capture delegate and stores it in an array to maintain a strong reference.
+            self.inProgressPhotoCaptureDelegates[photoCaptureProcessor.requestedPhotoSettings.uniqueID] = photoCaptureProcessor
+            self.frontCameraPhotoOutput.capturePhoto(with: photoSettings, delegate: photoCaptureProcessor)
+        }
+    }
 	
 	private func createAudioSettings() -> [String: NSObject]? {
 		guard let backMicrophoneAudioSettings = backMicrophoneAudioDataOutput.recommendedAudioSettingsForAssetWriter(writingTo: .mov) as? [String: NSObject] else {
@@ -1153,25 +1243,25 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 								height = dims.height
                                 print("--->width: \(width), height: \(height)")
 
-//								if width < activeWidth || height < activeHeight {
-//									do {
-//										try videoDeviceInput.device.lockForConfiguration()
-//										videoDeviceInput.device.activeFormat = format
-//
-//										videoDeviceInput.device.unlockForConfiguration()
-//
-//										print("reduced width = \(width), reduced height = \(height)")
-//
-//										return true
-//									} catch {
-//										print("Could not lock device for configuration: \(error)")
-//
-//										return false
-//									}
-//
-//								} else {
-//									continue
-//								}
+								if width < activeWidth || height < activeHeight {
+									do {
+										try videoDeviceInput.device.lockForConfiguration()
+										videoDeviceInput.device.activeFormat = format
+
+										videoDeviceInput.device.unlockForConfiguration()
+
+										print("reduced width = \(width), reduced height = \(height)")
+
+										return true
+									} catch {
+										print("Could not lock device for configuration: \(error)")
+
+										return false
+									}
+
+								} else {
+									continue
+								}
 							}
 						}
 					}
