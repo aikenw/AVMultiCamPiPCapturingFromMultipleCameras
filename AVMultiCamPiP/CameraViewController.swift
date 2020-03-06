@@ -426,6 +426,14 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 		}
 		session.addConnection(backCameraVideoDataOutputConnection)
 		backCameraVideoDataOutputConnection.videoOrientation = .portrait
+        if backCameraVideoDataOutputConnection.isVideoStabilizationSupported {
+            backCameraVideoDataOutputConnection.preferredVideoStabilizationMode = .auto
+        }
+        backCameraVideoDataOutputConnection.observe(
+            \.activeVideoStabilizationMode,
+            options: [.initial, .new]) { [weak backCameraVideoDataOutputConnection] _, _ in
+                print("--->back camera activeVideoStabilizationMode: \(backCameraVideoDataOutputConnection?.activeVideoStabilizationMode.rawValue)")
+        }.invalidate(by: &keyValueObservations)
 
 		// Connect the back camera device input to the back camera video preview layer
 		guard let backCameraVideoPreviewLayer = backCameraVideoPreviewLayer else {
@@ -533,6 +541,14 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 		frontCameraVideoDataOutputConnection.videoOrientation = .portrait
 //		frontCameraVideoDataOutputConnection.automaticallyAdjustsVideoMirroring = false
 //		frontCameraVideoDataOutputConnection.isVideoMirrored = true
+        if frontCameraVideoDataOutputConnection.isVideoStabilizationSupported {
+            frontCameraVideoDataOutputConnection.preferredVideoStabilizationMode = .auto
+        }
+        frontCameraVideoDataOutputConnection.observe(
+            \.activeVideoStabilizationMode,
+            options: [.initial, .new]) { [weak frontCameraVideoDataOutputConnection] _, _ in
+                print("--->front camera activeVideoStabilizationMode: \(frontCameraVideoDataOutputConnection?.activeVideoStabilizationMode.rawValue)")
+        }.invalidate(by: &keyValueObservations)
 
 		// Connect the front camera device input to the front camera video preview layer
 		guard let frontCameraVideoPreviewLayer = frontCameraVideoPreviewLayer else {

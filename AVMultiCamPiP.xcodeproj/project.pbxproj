@@ -18,6 +18,7 @@
 		42E159EC227A481C00F81016 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 42E159EA227A481C00F81016 /* LaunchScreen.storyboard */; };
 		42E15A12227A5CB800F81016 /* PreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42E15A11227A5CB800F81016 /* PreviewView.swift */; };
 		42E15A51227B8B3900F81016 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 42E15A50227B8B3900F81016 /* README.md */; };
+		C797C7D62411FA0A00AA3EFA /* NSKeyValueObservation+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = C797C7D52411FA0A00AA3EFA /* NSKeyValueObservation+Extension.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,6 +37,7 @@
 		42E15A50227B8B3900F81016 /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		4D664D304D66C32000000001 /* SampleCode.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = SampleCode.xcconfig; path = Configuration/SampleCode.xcconfig; sourceTree = "<group>"; };
 		4D6815704D68127000000001 /* LICENSE.txt */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
+		C797C7D52411FA0A00AA3EFA /* NSKeyValueObservation+Extension.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSKeyValueObservation+Extension.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +73,7 @@
 		42E159E0227A481B00F81016 /* AVMultiCamPiP */ = {
 			isa = PBXGroup;
 			children = (
+				C797C7D52411FA0A00AA3EFA /* NSKeyValueObservation+Extension.swift */,
 				42E159E1227A481B00F81016 /* AppDelegate.swift */,
 				42E159E3227A481B00F81016 /* CameraViewController.swift */,
 				42E15A11227A5CB800F81016 /* PreviewView.swift */,
@@ -177,6 +180,7 @@
 				2673E41C227D0F13008DB6F7 /* PiPMixer.metal in Sources */,
 				2673E417227D09AB008DB6F7 /* PiPVideoMixer.swift in Sources */,
 				42E159E4227A481B00F81016 /* CameraViewController.swift in Sources */,
+				C797C7D62411FA0A00AA3EFA /* NSKeyValueObservation+Extension.swift in Sources */,
 				42E159E2227A481B00F81016 /* AppDelegate.swift in Sources */,
 				26584C1D2282323E00ADA373 /* MovieRecorder.swift in Sources */,
 				2673E41A227D0AB7008DB6F7 /* Utilities.swift in Sources */,
