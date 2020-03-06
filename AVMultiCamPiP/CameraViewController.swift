@@ -347,7 +347,44 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 			print("Could not find the back camera")
 			return false
 		}
-		
+
+        
+        print("--->back wide camera")
+        let formats = backCamera.formats
+        for index in (0..<formats.count).reversed() {
+            let format = formats[index]
+            if format.isMultiCamSupported {
+                let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                let width = dims.width
+                let height = dims.height
+                print("--->Supported MultiCam width: \(width), height: \(height)")
+
+                do {
+                    try backCamera.lockForConfiguration()
+                    backCamera.activeFormat = format
+                    backCamera.unlockForConfiguration()
+                    break
+                } catch {
+                    print("Could not lock device for configuration: \(error)")
+                    break
+                }
+
+            } else {
+                let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                let width = dims.width
+                let height = dims.height
+                print("--->Not Supported MultiCam width: \(width), height: \(height)")
+            }
+        }
+                
+        do {
+            let dims = CMVideoFormatDescriptionGetDimensions(backCamera.activeFormat.formatDescription)
+            let activeWidth = dims.width
+            let activeHeight = dims.height
+            print("--->active width: \(activeWidth), height: \(activeHeight)")
+        }
+        
+        
 		// Add the back camera input to the session
 		do {
 			backCameraDeviceInput = try AVCaptureDeviceInput(device: backCamera)
@@ -411,10 +448,47 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 		}
 		
 		// Find the front camera
-		guard let frontCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else {
+		guard let frontCamera = AVCaptureDevice.default(.builtInUltraWideCamera, for: .video, position: .back) else {
 			print("Could not find the front camera")
 			return false
 		}
+        
+        
+        print("--->back ultra wide camera")
+        let formats = frontCamera.formats
+        for index in (0..<formats.count).reversed() {
+            let format = formats[index]
+            if format.isMultiCamSupported {
+                let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                let width = dims.width
+                let height = dims.height
+                print("--->Supported MultiCam width: \(width), height: \(height)")
+
+                do {
+                    try frontCamera.lockForConfiguration()
+                    frontCamera.activeFormat = format
+                    frontCamera.unlockForConfiguration()
+                    break
+                } catch {
+                    print("Could not lock device for configuration: \(error)")
+                    break
+                }
+
+            } else {
+                let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                let width = dims.width
+                let height = dims.height
+                print("--->Not Supported MultiCam width: \(width), height: \(height)")
+            }
+        }
+                
+        do {
+            let dims = CMVideoFormatDescriptionGetDimensions(frontCamera.activeFormat.formatDescription)
+            let activeWidth = dims.width
+            let activeHeight = dims.height
+            print("--->active width: \(activeWidth), height: \(activeHeight)")
+        }
+        
 		
 		// Add the front camera input to the session
 		do {
@@ -457,8 +531,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 		}
 		session.addConnection(frontCameraVideoDataOutputConnection)
 		frontCameraVideoDataOutputConnection.videoOrientation = .portrait
-		frontCameraVideoDataOutputConnection.automaticallyAdjustsVideoMirroring = false
-		frontCameraVideoDataOutputConnection.isVideoMirrored = true
+//		frontCameraVideoDataOutputConnection.automaticallyAdjustsVideoMirroring = false
+//		frontCameraVideoDataOutputConnection.isVideoMirrored = true
 
 		// Connect the front camera device input to the front camera video preview layer
 		guard let frontCameraVideoPreviewLayer = frontCameraVideoPreviewLayer else {
@@ -470,8 +544,8 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 			return false
 		}
 		session.addConnection(frontCameraVideoPreviewLayerConnection)
-		frontCameraVideoPreviewLayerConnection.automaticallyAdjustsVideoMirroring = false
-		frontCameraVideoPreviewLayerConnection.isVideoMirrored = true
+//		frontCameraVideoPreviewLayerConnection.automaticallyAdjustsVideoMirroring = false
+//		frontCameraVideoPreviewLayerConnection.isVideoMirrored = true
 		
 		return true
 	}
