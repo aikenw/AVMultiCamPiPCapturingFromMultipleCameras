@@ -363,6 +363,41 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 			print("Could not find the back camera")
 			return false
 		}
+        
+        print("--->back wide camera")
+        let formats = backCamera.formats
+        for index in (0..<formats.count).reversed() {
+            let format = formats[index]
+            if format.isMultiCamSupported {
+                let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                let width = dims.width
+                let height = dims.height
+                print("--->Supported MultiCam width: \(width), height: \(height)")
+
+//                do {
+//                    try backCamera.lockForConfiguration()
+//                    backCamera.activeFormat = format
+//                    backCamera.unlockForConfiguration()
+//                    break
+//                } catch {
+//                    print("Could not lock device for configuration: \(error)")
+//                    break
+//                }
+
+            } else {
+                let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                let width = dims.width
+                let height = dims.height
+                print("--->Not Supported MultiCam width: \(width), height: \(height)")
+            }
+        }
+                
+        do {
+            let dims = CMVideoFormatDescriptionGetDimensions(backCamera.activeFormat.formatDescription)
+            let activeWidth = dims.width
+            let activeHeight = dims.height
+            print("--->active width: \(activeWidth), height: \(activeHeight)")
+        }
 		
 		// Add the back camera input to the session
 		do {
@@ -430,6 +465,41 @@ class ViewController: UIViewController, AVCaptureAudioDataOutputSampleBufferDele
 			print("Could not find the front camera")
 			return false
 		}
+        
+        print("--->front wide camera")
+        let formats = frontCamera.formats
+        for index in (0..<formats.count).reversed() {
+            let format = formats[index]
+            if format.isMultiCamSupported {
+                let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                let width = dims.width
+                let height = dims.height
+                print("--->Supported MultiCam width: \(width), height: \(height)")
+
+//                do {
+//                    try frontCamera.lockForConfiguration()
+//                    frontCamera.activeFormat = format
+//                    frontCamera.unlockForConfiguration()
+//                    break
+//                } catch {
+//                    print("Could not lock device for configuration: \(error)")
+//                    break
+//                }
+
+            } else {
+                let dims = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+                let width = dims.width
+                let height = dims.height
+                print("--->Not Supported MultiCam width: \(width), height: \(height)")
+            }
+        }
+                
+        do {
+            let dims = CMVideoFormatDescriptionGetDimensions(frontCamera.activeFormat.formatDescription)
+            let activeWidth = dims.width
+            let activeHeight = dims.height
+            print("--->active width: \(activeWidth), height: \(activeHeight)")
+        }
 		
 		// Add the front camera input to the session
 		do {
